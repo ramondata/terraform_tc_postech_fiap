@@ -1,0 +1,102 @@
+name: Terraform CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      AWS_ROLE_ARN :
+        description: "ARN do papel (role) utilizado pelo GitHub Actions"
+        required: true
+        type: string
+      AWS_OIDC_PROVIDER_ARN:
+        description: "ARN do OIDC Provider utilizado pelo GitHub Actions"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: true
+  AWS_OIDC_PROVIDER_ARN: ${{ inputs.AWS_OIDC_PROVIDER_ARN }}
+  AWS_ROLE_ARN : ${{ inputs.AWS_ROLE_ARN  }}
+
+jobs:
+  terraform:
+    name: Terraform CD
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: env/dev
+
+    steps:
+
+      # --------------------------------------------------
+      # Checkout
+      # --------------------------------------------------
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      # --------------------------------------------------
+      # Setup Terraform
+      # --------------------------------------------------
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+
+      # --------------------------------------------------
+      # Setup Terragrunt
+      # --------------------------------------------------
+
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v3
+        with:
+          terragrunt-version: latest
+
+
+      # --------------------------------------------------
+      # Configure AWS
+      # --------------------------------------------------
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+
+      # --------------------------------------------------
+      # Check AWS Identity
+      # --------------------------------------------------
+
+      - name: Check AWS identity
+        run: aws sts get-caller-identity
+
+
+      # --------------------------------------------------
+      # Terragrunt Init
+      # --------------------------------------------------
+
+      - name: Terragrunt Init
+        run: terragrunt init
+
+
+      # --------------------------------------------------
+      # Terraform Plan
+      # --------------------------------------------------
+
+      - name: Terraform Plan
+        run: terragrunt plan -input=false
+
+
+      # --------------------------------------------------
+      # Terraform Apply
+      # --------------------------------------------------
+
+      - name: Terraform Apply
+        run: terragrunt apply -auto-approve -input=false
