@@ -251,22 +251,43 @@ terragrunt destroy
 
 # ⚙️ CI/CD
 
-### Pipeline Terraform-CI
-* Usando a o workflow no Actions: *terraform-CI*, é possivel fazer a validação do projeto terraform e sua estrutura. Basta passar a branch MAIN, o ARN da role e OIDC Provider da conta AWS, exemplo:
+### Pipeline Terraform Apply Bucket S3
+* Usado para criar o bucket S3 na conta AWS Academy, mas ao executar a pipeline será pedido para preencher as seguintes variaveis:
 ```bash
-AWS_ROLE_ARN
-arn:aws:iam::...:role/github...
+AWS_ACCESS_KEY_ID -> AWS Access Key ID temporário da AWS Academy
 
-AWS_OIDC_PROVIDER_ARN
-arn:aws:iam::...:oidc-provider/...
+AWS_SECRET_ACCESS_KEY -> AWS Secret Access Key temporário da AWS Academy
+
+AWS_SESSION_TOKEN -> AWS Session Token temporário da AWS Academy
+
+TF_VAR_BUCKET_NAME -> Nome do bucket S3 para armazenar o Terraform state
+```
+OBS: Essa pipeline irá terminar com erro por causa de uma segunda validação que o terraform faz mas não terá permissão. Porém validando no console da AWS Academy o Bucket S3 terá sido criado. 
+
+### Pipeline Terraform-CI
+* Usando a o workflow no Actions: *terraform-CI*, é possivel fazer a validação do projeto terraform e sua estrutura. Basta passar a branch MAIN, e os seguintes valores:
+```bash
+AWS_ACCESS_KEY_ID -> AWS Access Key ID temporário da AWS Academy
+
+AWS_SECRET_ACCESS_KEY -> AWS Secret Access Key temporário da AWS Academy
+
+AWS_SESSION_TOKEN -> AWS Session Token temporário da AWS Academy
+
+LAB_ROLE -> Passe o ARN do LabRole que pode ser encontrado na parte de roles no IAM do AWS console da sua conta academy
+
+BUCKET_NAME -> Nome do bucket S3 criando na pipeline "Terraform Apply Bucket S3" para armazenar o Terraform state
 ```
 
 ### Pipeline Terraform-CD
-* Usando a o workflow no Actions: *terraform-CD*, é possivel realizar o deploy da infrastrutura, criando cada recurso e role IAM necesárias para o projeto toggle-master. Basta passar a branch MAIN, o ARN da role e OIDC Provider da conta AWS, exemplo:
+* Usando a o workflow no Actions: *terraform-CD*, é possivel realizar o deploy da infrastrutura, criando cada recurso necesárias para o projeto toggle-master. Basta passar as seguintes informações , exemplo:
 ```bash
-AWS_ROLE_ARN
-arn:aws:iam::...:role/github...
+AWS_ACCESS_KEY_ID -> AWS Access Key ID temporário da AWS Academy
 
-AWS_OIDC_PROVIDER_ARN
-arn:aws:iam::...:oidc-provider/...
+AWS_SECRET_ACCESS_KEY -> AWS Secret Access Key temporário da AWS Academy
+
+AWS_SESSION_TOKEN -> AWS Session Token temporário da AWS Academy
+
+LAB_ROLE -> Passe o ARN do LabRole que pode ser encontrado na parte de roles no IAM do AWS console da sua conta academy
+
+BUCKET_NAME -> Nome do bucket S3 criando na pipeline "Terraform Apply Bucket S3" para armazenar o Terraform state
 ```

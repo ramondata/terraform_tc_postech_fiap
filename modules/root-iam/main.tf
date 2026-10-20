@@ -76,7 +76,7 @@ resource "aws_iam_policy" "github_actions_terraform" {
           "s3:GetEncryptionConfiguration"
         ]
 
-        Resource = "arn:aws:s3:::challenge3-terraform-state"
+        Resource = "arn:aws:s3:::challenge3-terraform-state-v2"
       },
 
       {
@@ -88,7 +88,7 @@ resource "aws_iam_policy" "github_actions_terraform" {
           "s3:DeleteObject"
         ]
 
-        Resource = "arn:aws:s3:::challenge3-terraform-state/*"
+        Resource = "arn:aws:s3:::challenge3-terraform-state-v2/*"
       }
     ]
   })

@@ -1,0 +1,83 @@
+name: Terraform Apply Bucket S3
+
+on:
+  workflow_dispatch:
+    inputs:
+      AWS_ACCESS_KEY_ID:
+        description: "AWS Access Key ID temporário da AWS Academy"
+        required: true
+        type: string
+      AWS_SECRET_ACCESS_KEY:
+        description: "AWS Secret Access Key temporário da AWS Academy"
+        required: true
+        type: string
+      AWS_SESSION_TOKEN:
+        description: "AWS Session Token temporário da AWS Academy"
+        required: true
+        type: string
+      TF_VAR_BUCKET_NAME:
+        description: "Nome do bucket S3 para armazenar o Terraform state"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: true
+  TF_VAR_bucket_name: ${{ inputs.TF_VAR_BUCKET_NAME }}
+
+jobs:
+  terraform:
+    name: Terraform Apply Bucket S3
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: modules/backend
+
+    steps:
+      # Checkout
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Setup Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Mask credentials
+      - name: Mask AWS credentials
+        run: |
+          echo "::add-mask::${{ inputs.AWS_ACCESS_KEY_ID }}"
+          echo "::add-mask::${{ inputs.AWS_SECRET_ACCESS_KEY }}"
+          echo "::add-mask::${{ inputs.AWS_SESSION_TOKEN }}"
+
+      # Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Terraform Format
+      - name: Terraform Format
+        run: terraform fmt -check -recursive
+
+      # Terraform Init
+      - name: Terraform Init
+        run: terraform init -backend=false
+
+      # Terraform Validate
+      - name: Terraform Validate
+        run: terraform validate
+
+      # Terraform Plan
+      - name: Terraform Plan
+        run: terraform plan -input=false
+
+      # Terraform Apply
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -input=false

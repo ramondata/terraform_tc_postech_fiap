@@ -1,7 +1,7 @@
 remote_state {
   backend = "s3"
   config = {
-    bucket = "challenge3-terraform-state"
+    bucket = "challenge3-terraform-state-v2"
     key    = "${path_relative_to_include()}/terraform.tfstate"
     region = "us-east-1"
     //dynamodb_table = "terraform-locks" -> mudança feita pois esta depreciados o uso do dynamodb como lock

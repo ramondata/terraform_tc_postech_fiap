@@ -1,7 +1,7 @@
 remote_state {
   backend = "s3"
   config = {
-    bucket = "challenge3-terraform-state"
+    bucket = get_env("BUCKET_NAME")
     key    = "${path_relative_to_include()}/terraform.tfstate"
     region = "us-east-1"
     //dynamodb_table = "terraform-locks" -> mudança feita pois esta depreciados o uso do dynamodb como lock
@@ -10,12 +10,13 @@ remote_state {
   }
 }
 terraform {
-  source = "../../modules/root"
+  source = "../../modules/root-aws-academy"
 }
 
 inputs = {
 
   env             = "dev"
+  lab_role = get_env("LAB_ROLE")
   
   #vpc insputs
   vpc_cidr        = "10.0.0.0/16"
@@ -24,7 +25,8 @@ inputs = {
   azs = ["us-east-1a", "us-east-1b"]
 
   #RDS
-  rds_databases = ["auth","target","flag"]
+  #rds_databases = ["auth","target","flag"]
+  rds_databases = ["auth","target"]
   db_username = "teste"
   db_password = "123456678"
   instance_class = "db.t3.micro"
@@ -41,6 +43,5 @@ inputs = {
   cluster_version = 1.36
 
   #ECR
-  aws_oidc_provider_arn = get_env("AWS_OIDC_PROVIDER_ARN")
   repositories = ["toggle-master/analytics-service","toggle-master/auth-service","toggle-master/evaluation-service", "toggle-master/flag-service", "toggle-master/targeting-service"]
 }

@@ -4,25 +4,35 @@ name: Terraform CI
 on:
   workflow_dispatch:
     inputs:
-      AWS_ROLE_ARN:
-        description: "ARN do papel (role) utilizado pelo GitHub Actions"
+      AWS_ACCESS_KEY_ID:
+        description: "Passe o AWS_ACCESS_KEY_ID do usuário que possui permissão para assumir o role do laboratório"
         required: true
         type: string
-      AWS_OIDC_PROVIDER_ARN:
-        description: "ARN do OIDC Provider utilizado pelo GitHub Actions"
+      AWS_SECRET_ACCESS_KEY:
+        description: "Passe o AWS_SECRET_ACCESS_KEY do usuário que possui permissão para assumir o role do laboratório"
+        required: true
+        type: string
+      AWS_SESSION_TOKEN:
+        description: "Passe o AWS_SESSION_TOKEN do usuário que possui permissão para assumir o role do laboratório"
+        required: true
+        type: string
+      LAB_ROLE:
+        description: "Passe o ARN do role do laboratório"
+        required: true
+        type: string
+      BUCKET_NAME:
+        description: "Nome do bucket S3 para armazenar o Terraform state"
         required: true
         type: string
 
 permissions:
   contents: read
-  id-token: write
 
 env:
   AWS_REGION: us-east-1
   TF_IN_AUTOMATION: true
-  AWS_OIDC_PROVIDER_ARN: ${{ inputs.AWS_OIDC_PROVIDER_ARN }}
-  AWS_ROLE_ARN: ${{ inputs.AWS_ROLE_ARN }}
-
+  LAB_ROLE: ${{ inputs.LAB_ROLE }}
+  BUCKET_NAME: ${{ inputs.BUCKET_NAME }}
 
 jobs:
   terraform:
@@ -50,11 +60,18 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Mask AWS credentials
+        run: |
+          echo "::add-mask::${{ inputs.AWS_ACCESS_KEY_ID }}"
+          echo "::add-mask::${{ inputs.AWS_SECRET_ACCESS_KEY }}"
+          echo "::add-mask::${{ inputs.AWS_SESSION_TOKEN }}"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-access-key-id: ${{ inputs.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ inputs.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ inputs.AWS_SESSION_TOKEN }}
           aws-region: ${{ env.AWS_REGION }}
       # --------------------------------------------------
       # Setup Terragrunt

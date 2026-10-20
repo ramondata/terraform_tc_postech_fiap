@@ -1,6 +1,10 @@
+variable "bucket_name" {
+  description = "Nome do bucket S3 para armazenar o Terraform state"
+  type        = string
+}
 # Bucket S3 para armazenar o state remoto (compartilhado)
 resource "aws_s3_bucket" "state" {
-  bucket        = "challenge3-terraform-state"
+  bucket        = var.bucket_name
   force_destroy = true
   tags = {
     team = "fiap"
