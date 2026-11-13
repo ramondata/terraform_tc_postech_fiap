@@ -32,6 +32,22 @@ run "new_account_plan" {
     error_message = "Os nos devem usar o tipo x86 elegivel no novo Free Tier."
   }
   assert {
+    condition     = aws_eks_addon.pod_identity.addon_name == "eks-pod-identity-agent" && length(aws_eks_pod_identity_association.workload) == 2
+    error_message = "Evaluation e analytics precisam das duas associacoes Pod Identity."
+  }
+  assert {
+    condition     = alltrue([for name, association in aws_eks_pod_identity_association.workload : association.namespace == "toggle-master" && association.service_account == name])
+    error_message = "Associacoes devem usar contas de servico exclusivas no namespace da aplicacao."
+  }
+  assert {
+    condition     = alltrue([for role in aws_iam_role.workload : jsondecode(role.assume_role_policy).Statement[0].Principal.Service == "pods.eks.amazonaws.com"])
+    error_message = "As roles dos pods devem confiar no servico Pod Identity."
+  }
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.evaluation.policy).Statement[0].Action == ["sqs:SendMessage", "sqs:GetQueueAttributes"]
+    error_message = "Evaluation deve apenas publicar na fila do projeto."
+  }
+  assert {
     condition     = length(aws_ecr_repository.service) == 5
     error_message = "Precisamos dos cinco repositorios ECR."
   }
