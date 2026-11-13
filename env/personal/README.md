@@ -158,3 +158,18 @@ git pull --ff-only
 export TARGET_REGION=us-east-2
 bash academy/lab.sh up
 ```
+
+## Trava de uma sessao interrompida
+
+Se um plan informar uma trava antiga, confira que nenhum outro apply/plan/destroy
+esta em execucao neste state, inclusive em outras sessoes. Entao use o ID
+exato mostrado no erro:
+
+```bash
+bash scripts/unlock-personal.sh ID_DA_TRAVA
+```
+
+O comando confere a conta, configura temporariamente o mesmo backend S3 de
+Ohio e pede confirmacao interativa. Nao depende de um cache Terragrunt de
+outra sessao nem aplica alteracoes na infraestrutura. Depois repita plan.
+Nao use -lock=false para contornar a protecao.

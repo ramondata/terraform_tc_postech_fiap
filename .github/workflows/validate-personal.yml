@@ -1,10 +1,10 @@
 name: Validate personal AWS environment
 on:
   pull_request:
-    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/install-tools.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/install-tools.sh, scripts/unlock-personal.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
   push:
     branches: [main]
-    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/install-tools.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/install-tools.sh, scripts/unlock-personal.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
 permissions:
   contents: read
 jobs:
@@ -20,8 +20,8 @@ jobs:
       - name: Syntax and formatting
         run: |
           python3 -m unittest discover -s scripts -p test_personal_recovery.py -v
-          bash -n scripts/personal.sh scripts/install-tools.sh
-          shellcheck --severity=warning scripts/personal.sh scripts/install-tools.sh
+          bash -n scripts/personal.sh scripts/install-tools.sh scripts/unlock-personal.sh
+          shellcheck --severity=warning scripts/personal.sh scripts/install-tools.sh scripts/unlock-personal.sh
           terraform fmt -check -diff modules/personal
       - name: Validate and plan with mock AWS provider
         working-directory: modules/personal
