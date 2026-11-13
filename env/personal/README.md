@@ -1,9 +1,13 @@
 # Conta pessoal — 172346499417
 
 Ambiente independente do Academy. Nao utiliza LabRole, os modulos root-iam/root
-antigos, nem o bucket/state antigo. Execute no CloudShell us-east-1 usando a
+antigos, nem o bucket/state antigo. Execute no CloudShell us-east-2 usando a
 mesma role que criara e administrara o EKS. Provider e script rejeitam outra
 conta para evitar aplicar na conta errada.
+
+O padrao deste ambiente e Ohio (`us-east-2`), a regiao selecionada no projeto
+Free desta conta. Bucket, provider, consultas e kubeconfig usam a mesma regiao.
+O script tambem aceita `PERSONAL_REGION`, se a regiao permitida mudar.
 
 ## Criar o plano
 
@@ -19,7 +23,7 @@ bloqueio de acesso publico, criptografia e versionamento. O state usa lockfile S
 EKS, EC2, NAT Gateway, bancos e cache ainda nao sao criados nesta etapa.
 
 O script gera uma senha forte em
-`$HOME/.toggle-personal/172346499417/rds-password`, com acesso somente do usuario,
+`$HOME/.toggle-personal/172346499417/us-east-2/rds-password`, com acesso somente do usuario,
 e a passa ao Terraform por variavel de ambiente. Nao ha senha no Git nem no
 stdout. O plano salvo tambem e privado, fora do checkout, pois contem dados
 sensíveis. Mantenha o arquivo de senha e os dados do state para futuras operacoes.
@@ -35,7 +39,7 @@ O script consulta a cota EC2 regional L-1216C47A. Tres t3.medium precisam de
 6 vCPUs; contas novas podem ter limite menor. plan exibe o aviso, e apply
 interrompe antes de criar a infraestrutura se a cota for insuficiente ou
 nao puder ser confirmada. Consulte Service Quotas > Amazon EC2 > Running
-On-Demand Standard instances em us-east-1. Considere tambem outras EC2 ja
+On-Demand Standard instances em us-east-2. Considere tambem outras EC2 ja
 existentes na mesma cota. O script nao pede aumento de cota automaticamente.
 
 ```bash
@@ -69,6 +73,7 @@ Depois do apply, consulte `bash scripts/personal.sh outputs`. Clone o GitOps:
 ```bash
 git clone https://github.com/ramondata/toggle-master-gitops.git
 cd toggle-master-gitops
+export TARGET_REGION=us-east-2
 bash academy/lab.sh publish
 git pull --ff-only
 bash academy/lab.sh up
@@ -81,7 +86,7 @@ pipelines pode ser configurado separadamente; nao e criado por este modulo.
 
 Quando `up` pedir a senha dos RDS, consulte o arquivo rds-password no seu
 terminal, fora da gravacao, e informe-a na entrada oculta. Nao envie a senha
-no chat. Na sessao seguinte, use `bash academy/lab.sh refresh` para renovar
+no chat. Na sessao seguinte, execute `export TARGET_REGION=us-east-2` e use `bash academy/lab.sh refresh` para renovar
 as credenciais dos pods.
 
 ## Custos e encerramento

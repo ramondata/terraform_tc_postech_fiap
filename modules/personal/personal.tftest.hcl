@@ -20,6 +20,10 @@ variables {
 run "new_account_plan" {
   command = plan
   assert {
+    condition     = var.region == "us-east-2" && aws_subnet.public[0].availability_zone == "us-east-2a" && aws_subnet.private[1].availability_zone == "us-east-2b"
+    error_message = "O ambiente pessoal deve usar Ohio por padrao, incluindo as subnets."
+  }
+  assert {
     condition     = aws_eks_node_group.main.scaling_config[0].desired_size == 3
     error_message = "A stack exige tres nos por padrao."
   }

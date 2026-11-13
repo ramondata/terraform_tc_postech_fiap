@@ -7,14 +7,14 @@ remote_state {
   config = {
     bucket       = get_env("PERSONAL_STATE_BUCKET")
     key          = "personal/toggle-master/terraform.tfstate"
-    region       = "us-east-1"
+    region       = get_env("PERSONAL_REGION", "us-east-2")
     encrypt      = true
     use_lockfile = true
   }
 }
 inputs = {
   account_id         = "172346499417"
-  region             = "us-east-1"
+  region             = get_env("PERSONAL_REGION", "us-east-2")
   env                = "dev"
   cluster_name       = "toggle-cluster"
   node_count         = 3

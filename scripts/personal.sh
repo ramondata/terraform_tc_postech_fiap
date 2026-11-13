@@ -8,7 +8,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mode="${1:-plan}"
 case "$mode" in plan|apply|outputs|destroy) ;; *) echo 'Uso: bash scripts/personal.sh plan|apply|outputs|destroy'; exit 2 ;; esac
 for tool in aws terraform terragrunt python3; do command -v "$tool" >/dev/null || { echo "Comando ausente: $tool" >&2; exit 2; }; done
-export AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1 AWS_PAGER=""
+export PERSONAL_REGION="${PERSONAL_REGION:-us-east-2}"
+export AWS_REGION="$PERSONAL_REGION" AWS_DEFAULT_REGION="$PERSONAL_REGION" AWS_PAGER=""
 export TG_TF_PATH
 TG_TF_PATH="$(command -v terraform)"
 expected=172346499417
@@ -20,23 +21,27 @@ if [[ "$mode" == plan || "$mode" == apply ]]; then
     printf 'Cota EC2 Standard regional: %s vCPUs; este cluster usa 6.\n' "$quota"
   else
     printf 'ATENCAO: cota EC2 Standard informada=%s. Precisamos de pelo menos 6 vCPUs, alem de outras instancias existentes.\n' "${quota:-indisponivel}" >&2
-    echo 'Confira Service Quotas > Amazon EC2 > Running On-Demand Standard instances, em us-east-1.' >&2
+    echo "Confira Service Quotas > Amazon EC2 > Running On-Demand Standard instances, em $PERSONAL_REGION." >&2
     [[ "$mode" != apply ]] || { echo 'Apply interrompido antes de criar a infraestrutura; confirme/aumente a cota primeiro.' >&2; exit 2; }
   fi
 fi
-STATE="$HOME/.toggle-personal/$account"
+STATE="$HOME/.toggle-personal/$account/$PERSONAL_REGION"
 mkdir -p "$STATE"
 chmod 700 "$STATE"
-export PERSONAL_STATE_BUCKET="toggle-tfstate-$account-us-east-1"
-export TF_PLUGIN_CACHE_DIR="/tmp/toggle-personal-$account/plugins"
-export TG_DOWNLOAD_DIR="/tmp/toggle-personal-$account/terragrunt"
+export PERSONAL_STATE_BUCKET="toggle-tfstate-$account-$PERSONAL_REGION"
+export TF_PLUGIN_CACHE_DIR="/tmp/toggle-personal-$account-$PERSONAL_REGION/plugins"
+export TG_DOWNLOAD_DIR="/tmp/toggle-personal-$account-$PERSONAL_REGION/terragrunt"
 mkdir -p "$TF_PLUGIN_CACHE_DIR" "$TG_DOWNLOAD_DIR"
-chmod 700 "/tmp/toggle-personal-$account"
+chmod 700 "/tmp/toggle-personal-$account-$PERSONAL_REGION"
 
 if [[ "$mode" == plan ]]; then
   # Apenas o bucket de state e preparado antes do plano da infraestrutura.
   if ! aws s3api head-bucket --bucket "$PERSONAL_STATE_BUCKET" --expected-bucket-owner "$account" >/dev/null 2>&1; then
-    aws s3api create-bucket --bucket "$PERSONAL_STATE_BUCKET" --region us-east-1 >/dev/null
+    bucket_args=(--bucket "$PERSONAL_STATE_BUCKET" --region "$PERSONAL_REGION")
+    if [[ "$PERSONAL_REGION" != us-east-1 ]]; then
+      bucket_args+=(--create-bucket-configuration "LocationConstraint=$PERSONAL_REGION")
+    fi
+    aws s3api create-bucket "${bucket_args[@]}" >/dev/null
   fi
   aws s3api head-bucket --bucket "$PERSONAL_STATE_BUCKET" --expected-bucket-owner "$account"
   aws s3api put-public-access-block --bucket "$PERSONAL_STATE_BUCKET" --expected-bucket-owner "$account" \
@@ -77,7 +82,7 @@ export PERSONAL_EKS_VERSION PERSONAL_RDS_VERSION TF_VAR_db_password
 PERSONAL_EKS_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["eks"])' "$STATE/versions.json")"
 PERSONAL_RDS_VERSION="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["postgres"])' "$STATE/versions.json")"
 TF_VAR_db_password="$(cat "$STATE/rds-password")"
-printf 'Conta %s | us-east-1 | EKS %s | PostgreSQL %s\n' "$account" "$PERSONAL_EKS_VERSION" "$PERSONAL_RDS_VERSION"
+printf 'Conta %s | %s | EKS %s | PostgreSQL %s\n' "$account" "$PERSONAL_REGION" "$PERSONAL_EKS_VERSION" "$PERSONAL_RDS_VERSION"
 cd "$ROOT/env/personal"
 terragrunt run -- init -input=false
 case "$mode" in
@@ -95,7 +100,7 @@ case "$mode" in
     [[ "$(cat "$STATE/plan-revision")" == "$(git -C "$ROOT" rev-parse HEAD)" ]] || { echo 'O codigo mudou desde o plano. Execute plan novamente.' >&2; exit 2; }
     terragrunt run -- apply -input=false "$STATE/infra.tfplan"
     rm -f -- "$STATE/infra.tfplan" "$STATE/plan-revision"
-    aws eks update-kubeconfig --name toggle-cluster --region us-east-1
+    aws eks update-kubeconfig --name toggle-cluster --region "$PERSONAL_REGION"
     echo 'Infraestrutura criada. Agora use o repositorio toggle-master-gitops para publicar e instalar as aplicacoes.'
     ;;
   outputs) terragrunt run -- output ;;

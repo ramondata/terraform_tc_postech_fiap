@@ -30,6 +30,7 @@ jobs:
       - name: Validate Terragrunt 1.2.2 configuration
         working-directory: env/personal
         env:
+          PERSONAL_REGION: us-east-2
           PERSONAL_STATE_BUCKET: test-only-personal-state
           PERSONAL_EKS_VERSION: '1.36'
           PERSONAL_RDS_VERSION: '16.10'
