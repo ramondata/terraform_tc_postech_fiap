@@ -6,7 +6,7 @@ umask 077
 export PATH="$HOME/.local/bin:$PATH"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mode="${1:-plan}"
-case "$mode" in plan|apply|outputs|destroy) ;; *) echo 'Uso: bash scripts/personal.sh plan|apply|outputs|destroy'; exit 2 ;; esac
+case "$mode" in plan|apply|outputs|destroy|import-nodegroup) ;; *) echo 'Uso: bash scripts/personal.sh plan|apply|outputs|destroy|import-nodegroup'; exit 2 ;; esac
 for tool in aws terraform terragrunt python3; do command -v "$tool" >/dev/null || { echo "Comando ausente: $tool" >&2; exit 2; }; done
 export PERSONAL_REGION="${PERSONAL_REGION:-us-east-2}"
 export AWS_REGION="$PERSONAL_REGION" AWS_DEFAULT_REGION="$PERSONAL_REGION" AWS_PAGER=""
@@ -114,6 +114,23 @@ case "$mode" in
     rm -f -- "$STATE/infra.tfplan" "$STATE/plan-revision"
     aws eks update-kubeconfig --name toggle-cluster --region "$PERSONAL_REGION"
     echo 'Infraestrutura criada. Agora use o repositorio toggle-master-gitops para publicar e instalar as aplicacoes.'
+    ;;
+  import-nodegroup)
+    # Um apply interrompido pode deixar o grupo na AWS, sem registro no state.
+    rm -f -- "$STATE/infra.tfplan" "$STATE/plan-revision"
+    terragrunt run -- state list > "$STATE/resource-addresses.txt"
+    if grep -Fxq 'aws_eks_node_group.main' "$STATE/resource-addresses.txt"; then
+      echo 'Grupo ja registrado no state; execute plan para conferir a substituicao.'
+    else
+      details="$(aws eks describe-nodegroup --cluster-name toggle-cluster --nodegroup-name toggle-cluster-nodes \
+        --region "$PERSONAL_REGION" --query 'nodegroup.[status,nodeRole]' --output text)"
+      read -r group_status group_role <<< "$details"
+      [[ "$group_status" == CREATE_FAILED && "$group_role" == "arn:aws:iam::$account:role/toggle-cluster-node-role" ]] || {
+        echo 'O grupo nao corresponde ao grupo com falha esperado. Importacao interrompida para revisao.' >&2; exit 2;
+      }
+      terragrunt run -- import -input=false aws_eks_node_group.main toggle-cluster:toggle-cluster-nodes
+      echo 'Grupo com falha importado. Execute plan; nenhuma substituicao foi aplicada nesta etapa.'
+    fi
     ;;
   outputs) terragrunt run -- output ;;
   destroy)

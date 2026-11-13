@@ -173,3 +173,20 @@ O comando confere a conta, configura temporariamente o mesmo backend S3 de
 Ohio e pede confirmacao interativa. Nao depende de um cache Terragrunt de
 outra sessao nem aplica alteracoes na infraestrutura. Depois repita plan.
 Nao use -lock=false para contornar a protecao.
+
+## Grupo existente na AWS, ausente do state
+
+Se o apply retornar NodeGroup already exists, nao remova o cluster ou o state.
+O grupo pode ter ficado na AWS depois de uma criacao interrompida. Para o
+grupo CREATE_FAILED deste laboratorio, use:
+
+```bash
+bash scripts/personal.sh import-nodegroup
+bash scripts/personal.sh plan
+```
+
+O comando confere o status e a role do grupo, invalida o plano anterior e
+importa somente aws_eks_node_group.main. Se ja estiver no state, nao importa
+novamente. Import nao substitui as instancias; revise o novo plano antes do
+apply. Se os arquivos locais estiverem ausentes, execute plan primeiro para
+recupera-los pelo state S3.
