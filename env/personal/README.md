@@ -103,8 +103,9 @@ pipelines pode ser configurado separadamente; nao e criado por este modulo.
 
 Quando `up` pedir a senha dos RDS, consulte o arquivo rds-password no seu
 terminal, fora da gravacao, e informe-a na entrada oculta. Nao envie a senha
-no chat. Na sessao seguinte, execute `export TARGET_REGION=us-east-2` e use `bash academy/lab.sh refresh` para renovar
-as credenciais dos pods.
+no chat. Evaluation e analytics usam EKS Pod Identity: roles separadas,
+permissoes limitadas a fila/tabela do projeto e credenciais renovadas pelo EKS.
+A sessao CloudShell e usada apenas para administracao e publicacao no CI.
 
 ## Custos e encerramento
 
@@ -190,3 +191,17 @@ importa somente aws_eks_node_group.main. Se ja estiver no state, nao importa
 novamente. Import nao substitui as instancias; revise o novo plano antes do
 apply. Se os arquivos locais estiverem ausentes, execute plan primeiro para
 recupera-los pelo state S3.
+
+## Ativar Pod Identity no ambiente pessoal existente
+
+Atualize este repositorio e execute plan. A mudanca adiciona o addon
+eks-pod-identity-agent, duas roles com politicas de dados restritas e duas
+associacoes. Nao precisa substituir o cluster, nodes ou bancos.
+Revise o plano antes de apply.
+
+Atualize/publice a imagem de analytics: o Boto3 antigo nao suporta o token
+de Pod Identity. Depois atualize o GitOps e execute academy/lab.sh up em
+us-east-2. O bootstrap confere addon e associacoes antes de remover as
+credenciais estaticas do Secret e selecionar as contas de servico dos pods.
+Nao e preciso renovar a sessao dos pods quando o CloudShell expira.
+O CI continua usando credenciais temporarias separadamente.

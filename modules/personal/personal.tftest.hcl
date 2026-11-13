@@ -11,6 +11,20 @@ override_resource {
   target = aws_subnet.private[1]
   values = { id = "subnet-0123456789abcdef1" }
 }
+override_resource {
+  target          = aws_sqs_queue.events
+  override_during = plan
+  values = {
+    arn = "arn:aws:sqs:us-east-2:172346499417:toggle-master-sqs"
+  }
+}
+override_resource {
+  target          = aws_dynamodb_table.events
+  override_during = plan
+  values = {
+    arn = "arn:aws:dynamodb:us-east-2:172346499417:table/dev-dynamodb"
+  }
+}
 variables {
   account_id         = "172346499417"
   eks_version        = "1.36"
@@ -30,6 +44,22 @@ run "new_account_plan" {
   assert {
     condition     = length(aws_eks_node_group.main.instance_types) == 1 && contains(aws_eks_node_group.main.instance_types, "c7i-flex.large")
     error_message = "Os nos devem usar o tipo x86 elegivel no novo Free Tier."
+  }
+  assert {
+    condition     = aws_eks_addon.pod_identity.addon_name == "eks-pod-identity-agent" && length(aws_eks_pod_identity_association.workload) == 2
+    error_message = "Evaluation e analytics precisam das duas associacoes Pod Identity."
+  }
+  assert {
+    condition     = alltrue([for name, association in aws_eks_pod_identity_association.workload : association.namespace == "toggle-master" && association.service_account == name])
+    error_message = "Associacoes devem usar contas de servico exclusivas no namespace da aplicacao."
+  }
+  assert {
+    condition     = alltrue([for role in aws_iam_role.workload : jsondecode(role.assume_role_policy).Statement[0].Principal.Service == "pods.eks.amazonaws.com"])
+    error_message = "As roles dos pods devem confiar no servico Pod Identity."
+  }
+  assert {
+    condition     = jsondecode(aws_iam_role_policy.evaluation.policy).Statement[0].Action == ["sqs:SendMessage", "sqs:GetQueueAttributes"]
+    error_message = "Evaluation deve apenas publicar na fila do projeto."
   }
   assert {
     condition     = length(aws_ecr_repository.service) == 5
