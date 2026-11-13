@@ -1,10 +1,10 @@
 name: Validate personal AWS environment
 on:
   pull_request:
-    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/install-tools.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
   push:
     branches: [main]
-    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/install-tools.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
 permissions:
   contents: read
 jobs:
@@ -13,14 +13,15 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: '1.17.2'
+      - name: Install pinned Terraform and Terragrunt
+        run: |
+          bash scripts/install-tools.sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Syntax and formatting
         run: |
           python3 -m unittest discover -s scripts -p test_personal_recovery.py -v
-          bash -n scripts/personal.sh
-          shellcheck --severity=warning scripts/personal.sh
+          bash -n scripts/personal.sh scripts/install-tools.sh
+          shellcheck --severity=warning scripts/personal.sh scripts/install-tools.sh
           terraform fmt -check -diff modules/personal
       - name: Validate and plan with mock AWS provider
         working-directory: modules/personal
@@ -36,8 +37,5 @@ jobs:
           PERSONAL_EKS_VERSION: '1.36'
           PERSONAL_RDS_VERSION: '16.10'
         run: |
-          curl -fsSL https://github.com/gruntwork-io/terragrunt/releases/download/v1.2.2/terragrunt_linux_amd64 -o /tmp/terragrunt
-          printf '%s  %s\n' 1ba4ad11cf6ac277e8ba59a3fdceb8576778e22f6a24bedd542e91bad9f36491 /tmp/terragrunt | sha256sum --check --status
-          chmod +x /tmp/terragrunt
           export TG_TF_PATH="$(command -v terraform)"
-          /tmp/terragrunt hcl validate
+          terragrunt hcl validate

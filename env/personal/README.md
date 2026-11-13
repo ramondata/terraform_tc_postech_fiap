@@ -11,7 +11,15 @@ O script tambem aceita `PERSONAL_REGION`, se a regiao permitida mudar.
 
 ## Criar o plano
 
-Na raiz deste repositorio, com Terraform e Terragrunt instalados:
+Na raiz deste repositorio, no AWS CloudShell Linux x86_64, instale as ferramentas
+uma vez por ambiente (sem sudo, downloads oficiais e verificacao de checksum):
+
+```bash
+bash scripts/install-tools.sh
+```
+
+O instalador usa Terraform 1.17.2 e Terragrunt 1.2.2, as mesmas versoes do CI.
+O personal.sh adiciona ~/.local/bin ao PATH. Depois execute:
 
 ```bash
 git pull --ff-only
