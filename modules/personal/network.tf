@@ -16,7 +16,7 @@ resource "aws_subnet" "public" {
   cidr_block              = local.public_cidrs[count.index]
   availability_zone       = local.azs[count.index]
   map_public_ip_on_launch = true
-  tags                    = {
+  tags = {
     Name                     = "${var.env}-public-${count.index}"
     "kubernetes.io/role/elb" = "1"
   }
@@ -26,7 +26,7 @@ resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = local.private_cidrs[count.index]
   availability_zone = local.azs[count.index]
-  tags              = {
+  tags = {
     Name                              = "${var.env}-private-${count.index}"
     "kubernetes.io/role/internal-elb" = "1"
   }

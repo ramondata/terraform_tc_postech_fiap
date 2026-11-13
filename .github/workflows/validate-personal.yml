@@ -27,3 +27,14 @@ jobs:
           terraform init -backend=false -input=false
           terraform validate
           terraform test -no-color
+      - name: Validate Terragrunt 1.2.2 configuration
+        env:
+          PERSONAL_STATE_BUCKET: test-only-personal-state
+          PERSONAL_EKS_VERSION: '1.36'
+          PERSONAL_RDS_VERSION: '16.10'
+        run: |
+          curl -fsSL https://github.com/gruntwork-io/terragrunt/releases/download/v1.2.2/terragrunt_linux_amd64 -o /tmp/terragrunt
+          printf '%s  %s\n' 1ba4ad11cf6ac277e8ba59a3fdceb8576778e22f6a24bedd542e91bad9f36491 /tmp/terragrunt | sha256sum --check --status
+          chmod +x /tmp/terragrunt
+          export TG_TF_PATH="$(command -v terraform)"
+          /tmp/terragrunt hcl validate --config env/personal/terragrunt.hcl
