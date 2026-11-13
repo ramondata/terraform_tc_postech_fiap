@@ -1,0 +1,41 @@
+name: Validate personal AWS environment
+on:
+  pull_request:
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, .github/workflows/validate-personal.yml]
+  push:
+    branches: [main]
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, .github/workflows/validate-personal.yml]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.17.2'
+      - name: Syntax and formatting
+        run: |
+          bash -n scripts/personal.sh
+          shellcheck --severity=warning scripts/personal.sh
+          terraform fmt -check -diff modules/personal
+      - name: Validate and plan with mock AWS provider
+        working-directory: modules/personal
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+          terraform test -no-color
+      - name: Validate Terragrunt 1.2.2 configuration
+        working-directory: env/personal
+        env:
+          PERSONAL_STATE_BUCKET: test-only-personal-state
+          PERSONAL_EKS_VERSION: '1.36'
+          PERSONAL_RDS_VERSION: '16.10'
+        run: |
+          curl -fsSL https://github.com/gruntwork-io/terragrunt/releases/download/v1.2.2/terragrunt_linux_amd64 -o /tmp/terragrunt
+          printf '%s  %s\n' 1ba4ad11cf6ac277e8ba59a3fdceb8576778e22f6a24bedd542e91bad9f36491 /tmp/terragrunt | sha256sum --check --status
+          chmod +x /tmp/terragrunt
+          export TG_TF_PATH="$(command -v terraform)"
+          /tmp/terragrunt hcl validate

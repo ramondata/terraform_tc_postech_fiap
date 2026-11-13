@@ -18,3 +18,13 @@ modules/root-iam/.terraform.lock.hcl
 modules/root-iam/.terraform/
 modules/root-iam/terraform.tfstate
 modules/root-iam/terraform.tfstate.backup
+
+# Dados privados e caches de qualquer ambiente
+**/.terragrunt-cache/
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+!*.example.tfvars
