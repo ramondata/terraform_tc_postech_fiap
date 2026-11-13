@@ -14,6 +14,16 @@ TG_TF_PATH="$(command -v terraform)"
 expected=172346499417
 account="$(aws sts get-caller-identity --query Account --output text)"
 [[ "$account" == "$expected" ]] || { echo "Conta incorreta: esperado $expected, recebido $account. Nada foi criado." >&2; exit 2; }
+if [[ "$mode" == plan || "$mode" == apply ]]; then
+  quota="$(aws service-quotas get-service-quota --service-code ec2 --quota-code L-1216C47A --query Quota.Value --output text 2>/dev/null || true)"
+  if [[ "$quota" =~ ^[0-9]+([.][0-9]+)?$ ]] && (( ${quota%%.*} >= 6 )); then
+    printf 'Cota EC2 Standard regional: %s vCPUs; este cluster usa 6.\n' "$quota"
+  else
+    printf 'ATENCAO: cota EC2 Standard informada=%s. Precisamos de pelo menos 6 vCPUs, alem de outras instancias existentes.\n' "${quota:-indisponivel}" >&2
+    echo 'Confira Service Quotas > Amazon EC2 > Running On-Demand Standard instances, em us-east-1.' >&2
+    [[ "$mode" != apply ]] || { echo 'Apply interrompido antes de criar a infraestrutura; confirme/aumente a cota primeiro.' >&2; exit 2; }
+  fi
+fi
 STATE="$HOME/.toggle-personal/$account"
 mkdir -p "$STATE"
 chmod 700 "$STATE"

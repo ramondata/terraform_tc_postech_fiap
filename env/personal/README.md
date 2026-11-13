@@ -31,6 +31,13 @@ versoes fora do checkout, evitando mudar versoes em cada novo plan.
 
 ## Depois de revisar o plano
 
+O script consulta a cota EC2 regional L-1216C47A. Tres t3.medium precisam de
+6 vCPUs; contas novas podem ter limite menor. plan exibe o aviso, e apply
+interrompe antes de criar a infraestrutura se a cota for insuficiente ou
+nao puder ser confirmada. Consulte Service Quotas > Amazon EC2 > Running
+On-Demand Standard instances em us-east-1. Considere tambem outras EC2 ja
+existentes na mesma cota. O script nao pede aumento de cota automaticamente.
+
 ```bash
 bash scripts/personal.sh apply
 ```
