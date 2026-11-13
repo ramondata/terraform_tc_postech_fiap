@@ -205,3 +205,15 @@ us-east-2. O bootstrap confere addon e associacoes antes de remover as
 credenciais estaticas do Secret e selecionar as contas de servico dos pods.
 Nao e preciso renovar a sessao dos pods quando o CloudShell expira.
 O CI continua usando credenciais temporarias separadamente.
+
+## Publicacao pelo CI com sessao curta do CloudShell
+
+A role toggle-cluster-ci-publisher permite somente login ECR e operacoes de
+imagem nos cinco repositorios do projeto. Apenas AccountFullAccessRole desta
+conta (com ou sem path IAM) pode assumi-la. Nao tem acesso a bancos, S3,
+Kubernetes ou IAM, e nao cria chaves permanentes.
+
+Depois de plan/apply, academy/lab.sh publish usa STS AssumeRole por 3600
+segundos e atualiza o Secret temporario do GitHub. Isso separa a duracao do
+CI da sessao curta usada para administrar pelo CloudShell. O SDK dos pods
+continua usando Pod Identity; a role de publicacao nao e entregue aos pods.
