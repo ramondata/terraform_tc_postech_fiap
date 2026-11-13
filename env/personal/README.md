@@ -28,14 +28,23 @@ e a passa ao Terraform por variavel de ambiente. Nao ha senha no Git nem no
 stdout. O plano salvo tambem e privado, fora do checkout, pois contem dados
 sensíveis. Mantenha o arquivo de senha e os dados do state para futuras operacoes.
 
+Se ja existe state remoto, o script confere/recupera a senha e as versoes
+salvas nesse state antes do plano. Isso evita gerar uma nova senha RDS ao mudar
+de sessao CloudShell. Os arquivos continuam privados; nenhuma senha e impressa.
+Se houver divergencia entre arquivo local e state, o comando interrompe para revisao.
+
 Na primeira execucao ele consulta versoes realmente disponiveis na regiao:
 prefere EKS 1.36 se estiver em suporte padrao; caso contrario escolhe uma
 versao recente em suporte padrao. Escolhe PostgreSQL 16 disponivel e guarda as
 versoes fora do checkout, evitando mudar versoes em cada novo plan.
 
+O tipo EC2 padrao e `c7i-flex.large` (x86), elegivel no novo Free Tier.
+O script consulta essa elegibilidade antes do plano. Elegivel significa que
+pode consumir os creditos do plano; nao significa uso ilimitado sem custo.
+
 ## Depois de revisar o plano
 
-O script consulta a cota EC2 regional L-1216C47A. Tres t3.medium precisam de
+O script consulta a cota EC2 regional L-1216C47A. Tres c7i-flex.large precisam de
 6 vCPUs; contas novas podem ter limite menor. plan exibe o aviso, e apply
 interrompe antes de criar a infraestrutura se a cota for insuficiente ou
 nao puder ser confirmada. Consulte Service Quotas > Amazon EC2 > Running
@@ -55,7 +64,7 @@ Infraestrutura planejada:
 
 - Uma VPC, duas subnets publicas e duas privadas; um NAT Gateway compartilhado.
 - Um EKS toggle-cluster, com roles proprias para cluster e nodes.
-- Tres nodes t3.medium privados (6 vCPUs no total), com saida pelo NAT.
+- Tres nodes c7i-flex.large privados (6 vCPUs no total), com saida pelo NAT.
 - Cinco repositorios ECR toggle-master/<servico>.
 - Dois RDS db.t3.micro privados e criptografados: auth_db e target_db.
   O bootstrap GitOps cria flags_db no RDS de auth e inicializa os schemas.
@@ -106,3 +115,38 @@ bash scripts/personal.sh destroy
 O Terraform solicita confirmacao. Esse destroy apaga os bancos e as imagens
 ECR deste laboratorio. O bucket de state permanece para manter o historico.
 Esta instrucao nao autoriza apagar recursos preexistentes ou de outros projetos.
+
+## Retomar o node group que falhou no plano Free
+
+Confirme conta 172346499417 e regiao Ohio. Pare uma execucao antiga de
+academy/lab.sh up antes de aplicar o novo plano. Nao execute destroy.
+
+Na raiz do Terraform, atualize o codigo e gere um plano:
+
+```bash
+git pull --ff-only
+bash scripts/personal.sh plan
+```
+
+O plano deve substituir apenas o grupo toggle-cluster-nodes que falhou,
+trocando t3.medium por c7i-flex.large. Confira que EKS, VPC, RDS e demais
+recursos existentes nao serao substituidos e que as senhas nao serao alteradas.
+Se aparecer recriacao de bancos/cluster ou colisao com um grupo nao gerenciado
+no state, pare e revise o plano; nao apague state nem importe outro ambiente.
+
+Depois dessa revisao:
+
+```bash
+bash scripts/personal.sh apply
+kubectl get nodes -o wide
+```
+
+Com tres nos Ready, retome no GitOps (nao precisa republicar imagens que ja
+terminaram com sucesso nesta conta/regiao):
+
+```bash
+cd ~/toggle-master-gitops
+git pull --ff-only
+export TARGET_REGION=us-east-2
+bash academy/lab.sh up
+```

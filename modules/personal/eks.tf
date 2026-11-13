@@ -41,7 +41,7 @@ resource "aws_eks_node_group" "main" {
   node_group_name = "${var.cluster_name}-nodes"
   node_role_arn   = aws_iam_role.nodes.arn
   subnet_ids      = aws_subnet.private[*].id
-  instance_types  = ["t3.medium"]
+  instance_types  = ["c7i-flex.large"]
   scaling_config {
     desired_size = var.node_count
     min_size     = 1

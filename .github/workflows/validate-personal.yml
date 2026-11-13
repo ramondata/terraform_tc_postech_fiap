@@ -1,10 +1,10 @@
 name: Validate personal AWS environment
 on:
   pull_request:
-    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, .github/workflows/validate-personal.yml]
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
   push:
     branches: [main]
-    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, .github/workflows/validate-personal.yml]
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, scripts/recover-personal-state.py, scripts/test_personal_recovery.py, .github/workflows/validate-personal.yml]
 permissions:
   contents: read
 jobs:
@@ -18,6 +18,7 @@ jobs:
           terraform_version: '1.17.2'
       - name: Syntax and formatting
         run: |
+          python3 -m unittest discover -s scripts -p test_personal_recovery.py -v
           bash -n scripts/personal.sh
           shellcheck --severity=warning scripts/personal.sh
           terraform fmt -check -diff modules/personal
