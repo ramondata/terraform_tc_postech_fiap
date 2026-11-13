@@ -62,6 +62,14 @@ run "new_account_plan" {
     error_message = "Evaluation deve apenas publicar na fila do projeto."
   }
   assert {
+    condition     = aws_iam_role.ci_publisher.max_session_duration == 3600 && jsondecode(aws_iam_role.ci_publisher.assume_role_policy).Statement[0].Condition.ArnLike["aws:PrincipalArn"] == ["arn:aws:iam::172346499417:role/AccountFullAccessRole", "arn:aws:iam::172346499417:role/*/AccountFullAccessRole"]
+    error_message = "Somente a role administrativa desta conta pode assumir o publicador, por uma hora."
+  }
+  assert {
+    condition     = length(jsondecode(aws_iam_role_policy.ci_publisher.policy).Statement[1].Resource) == 5 && alltrue([for arn in jsondecode(aws_iam_role_policy.ci_publisher.policy).Statement[1].Resource : startswith(arn, "arn:aws:ecr:us-east-2:172346499417:repository/toggle-master/")])
+    error_message = "O publicador deve acessar somente os cinco repositorios ECR deste projeto."
+  }
+  assert {
     condition     = length(aws_ecr_repository.service) == 5
     error_message = "Precisamos dos cinco repositorios ECR."
   }
