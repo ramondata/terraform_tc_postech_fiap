@@ -11,6 +11,20 @@ override_resource {
   target = aws_subnet.private[1]
   values = { id = "subnet-0123456789abcdef1" }
 }
+override_resource {
+  target          = aws_sqs_queue.events
+  override_during = plan
+  values = {
+    arn = "arn:aws:sqs:us-east-2:172346499417:toggle-master-sqs"
+  }
+}
+override_resource {
+  target          = aws_dynamodb_table.events
+  override_during = plan
+  values = {
+    arn = "arn:aws:dynamodb:us-east-2:172346499417:table/dev-dynamodb"
+  }
+}
 variables {
   account_id         = "172346499417"
   eks_version        = "1.36"
