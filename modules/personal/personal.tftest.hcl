@@ -28,6 +28,10 @@ run "new_account_plan" {
     error_message = "A stack exige tres nos por padrao."
   }
   assert {
+    condition     = length(aws_eks_node_group.main.instance_types) == 1 && contains(aws_eks_node_group.main.instance_types, "c7i-flex.large")
+    error_message = "Os nos devem usar o tipo x86 elegivel no novo Free Tier."
+  }
+  assert {
     condition     = length(aws_ecr_repository.service) == 5
     error_message = "Precisamos dos cinco repositorios ECR."
   }

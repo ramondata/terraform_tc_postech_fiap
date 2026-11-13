@@ -35,6 +35,8 @@ mkdir -p "$TF_PLUGIN_CACHE_DIR" "$TG_DOWNLOAD_DIR"
 chmod 700 "/tmp/toggle-personal-$account-$PERSONAL_REGION"
 
 if [[ "$mode" == plan ]]; then
+  eligible="$(aws ec2 describe-instance-types --instance-types c7i-flex.large --query 'InstanceTypes[0].FreeTierEligible' --output text)"
+  [[ "$eligible" == True || "$eligible" == true ]] || { echo 'c7i-flex.large nao consta como elegivel no Free Tier desta regiao. Plano interrompido.' >&2; exit 2; }
   # Apenas o bucket de state e preparado antes do plano da infraestrutura.
   if ! aws s3api head-bucket --bucket "$PERSONAL_STATE_BUCKET" --expected-bucket-owner "$account" >/dev/null 2>&1; then
     bucket_args=(--bucket "$PERSONAL_STATE_BUCKET" --region "$PERSONAL_REGION")
@@ -50,6 +52,16 @@ if [[ "$mode" == plan ]]; then
     --versioning-configuration Status=Enabled
   aws s3api put-bucket-encryption --bucket "$PERSONAL_STATE_BUCKET" --expected-bucket-owner "$account" \
     --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+  # Recupera o segredo e as versoes se a sessao CloudShell perdeu arquivos locais.
+  remote_key="personal/toggle-master/terraform.tfstate"
+  aws s3api list-objects-v2 --bucket "$PERSONAL_STATE_BUCKET" --expected-bucket-owner "$account" \
+    --prefix "$remote_key" --output json > "$STATE/state-index.json"
+  if python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));sys.exit(0 if any(o["Key"]==sys.argv[2] for o in d.get("Contents",[])) else 1)' "$STATE/state-index.json" "$remote_key"; then
+    aws s3api get-object --bucket "$PERSONAL_STATE_BUCKET" --expected-bucket-owner "$account" \
+      --key "$remote_key" "$STATE/recovery.tfstate" >/dev/null
+    python3 "$ROOT/scripts/recover-personal-state.py" "$STATE/recovery.tfstate" "$STATE" "$account" "$PERSONAL_REGION"
+    rm -f -- "$STATE/recovery.tfstate"
+  fi
   if [[ ! -s "$STATE/rds-password" ]]; then
     python3 - "$STATE/rds-password" <<'PY'
 from pathlib import Path
@@ -92,7 +104,7 @@ case "$mode" in
     rm -f -- "$STATE/infra.tfplan" "$STATE/plan-revision"
     terragrunt run -- plan -input=false -out="$STATE/infra.tfplan"
     git -C "$ROOT" rev-parse HEAD > "$STATE/plan-revision"
-    echo 'Plano salvo. EKS, EC2, NAT, RDS e Redis ainda NAO foram criados.'
+    echo 'Plano salvo. Nenhuma alteracao da infraestrutura foi aplicada nesta etapa.'
     echo 'Revise o plano antes de executar: bash scripts/personal.sh apply'
     ;;
   apply)
