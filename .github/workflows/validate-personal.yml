@@ -1,0 +1,29 @@
+name: Validate personal AWS environment
+on:
+  pull_request:
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, .github/workflows/validate-personal.yml]
+  push:
+    branches: [main]
+    paths: [modules/personal/**, env/personal/**, scripts/personal.sh, .github/workflows/validate-personal.yml]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.17.2'
+      - name: Syntax and formatting
+        run: |
+          bash -n scripts/personal.sh
+          shellcheck --severity=warning scripts/personal.sh
+          terraform fmt -check -diff modules/personal
+      - name: Validate and plan with mock AWS provider
+        working-directory: modules/personal
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+          terraform test -no-color

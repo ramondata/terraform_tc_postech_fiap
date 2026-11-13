@@ -1,3 +1,12 @@
+# Conta pessoal — novo caminho
+
+Para a conta **172346499417**, use o [guia env/personal](env/personal/README.md).
+Na raiz do repositorio, execute `bash scripts/personal.sh plan`; somente apos
+revisar, execute `bash scripts/personal.sh apply`. O state e separado do Academy.
+O primeiro comando prepara apenas o bucket de state, nao a infraestrutura principal.
+
+---
+
 # AWS Infrastructure as Code — Terraform & Terragrunt
 
 Projeto de infraestrutura AWS desenvolvido com **Terraform** e **Terragrunt**, com o objetivo de praticar Infrastructure as Code (IaC), modularização, gerenciamento de estado remoto, IAM, Kubernetes/EKS e integração com pipelines CI/CD.
